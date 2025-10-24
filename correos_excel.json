@@ -1,0 +1,187 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "foldersToInclude": [
+            "AQMkADAwATNiZmYAZC0zMwA3NwAtNDQAYTAtMDACLTAwCgAuAAADvG8pTY4la0KfhmFquuAZDQEA44qbmXZUSk2Ye3qIpZDjMQAAAgEMAAAA"
+          ],
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        -96
+      ],
+      "id": "b9903e46-6fad-4df5-b09e-1a9cce1c37ef",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "px4mQk5mX4cUdGhM",
+          "name": "Microsoft Outlook account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "value": "5CA66183DDFE2827!476",
+          "mode": "list",
+          "cachedResultName": "PRUEBA N8N",
+          "cachedResultUrl": "https://1drv.ms/x/s!ACco_t2DYaZcg1w"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "{37E9C58C-7B14-4C4C-B3F9-8D58F6528461}",
+          "mode": "list",
+          "cachedResultName": "Hoja1",
+          "cachedResultUrl": "https://onedrive.live.com/edit.aspx?resid=5CA66183DDFE2827!476&activeCell=Hoja1!A1"
+        },
+        "table": {
+          "__rl": true,
+          "value": "{49DA7A48-9C72-44C4-B8CC-60D64F694EE1}",
+          "mode": "list",
+          "cachedResultName": "Tabla1",
+          "cachedResultUrl": "https://onedrive.live.com/edit.aspx?resid=5CA66183DDFE2827!476&activeCell=Hoja1!A2:T2803"
+        },
+        "returnAll": true,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        -96
+      ],
+      "id": "abb67b14-e582-4e13-9a2c-cc13b131789c",
+      "name": "Get rows",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "QwIHEjOvcMEFS5Q1",
+          "name": "Microsoft Excel account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Intentamos encontrar un número de 6 a 10 dígitos\nconst subject = $json[\"subject\"];\nconst match = subject.match(/\\b\\d{6,10}\\b/); // busca número de 6 a 10 dígitos\n\nconst cedula = match ? match[0] : null;\n\nreturn [{ json: { cedula } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -96
+      ],
+      "id": "1b6d8c31-428c-4e5a-84ce-ce62c6175bb7",
+      "name": "Extraer_Cedula"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener la cédula extraída del nodo anterior\nconst cedula = $('Extraer_Cedula').first().json.cedula\n\n// Obtener todas las filas del Excel (Get Rows)\nconst filas = $input.all();\n\n// Buscar coincidencia en la columna 'TIPO DE DOCUMENTO ' (con el espacio final si existe)\nconst coincidencia = filas.find(f => f.json['TIPO DE DOCUMENTO '] == cedula);\n\n// Si hay coincidencia, devolver los datos encontrados\nif (coincidencia) {\n  return [{ json: { existe: true, datos: coincidencia.json } }];\n} else {\n  return [{ json: { existe: false } }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -96
+      ],
+      "id": "aba08ff1-cc0e-426f-b110-d250ba05ed30",
+      "name": "Comparar_cedula",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "chatId": "5071890905",
+        "text": "=La persona con el nombre {{ $json.datos['NOMBRE DEL ACCIONANTE'] }} y con cedula {{ $json.datos['TIPO DE DOCUMENTO '] }} esta en la base de datos esperando su correo",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        256,
+        -96
+      ],
+      "id": "700c26f3-9e08-4872-bb82-77910ed7d15b",
+      "name": "Send a text message",
+      "webhookId": "5ad1b9e8-5d13-4cb9-b13a-45b2560cd822",
+      "credentials": {
+        "telegramApi": {
+          "id": "o9HT2KqwB9A528zL",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extraer_Cedula",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows": {
+      "main": [
+        [
+          {
+            "node": "Comparar_cedula",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer_Cedula": {
+      "main": [
+        [
+          {
+            "node": "Get rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar_cedula": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6868327f-fa47-40d9-b0aa-9b4a87bb3dc0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f38df829f39ff8f486be2a1934e00849df6d934e0a8c4f36be19cd69e2c2753"
+  },
+  "id": "DbZEtO5v4u8OnJ0w",
+  "tags": []
+}
